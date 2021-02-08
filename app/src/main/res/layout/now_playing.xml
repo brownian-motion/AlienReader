@@ -12,7 +12,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         tools:text="Post Title"
-        android:textSize="48dp"
+        android:textSize="@dimen/now_playing_title_size"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -36,21 +36,25 @@
         android:id="@+id/loading"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="411dp"
         android:text="Loading..."
+        android:textSize="@dimen/now_playing_status_message_size"
+        android:textAlignment="center"
+        tools:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        tools:visibility="gone" />
+        app:layout_constraintBottom_toBottomOf="parent" />
 
     <TextView
+        android:id="@+id/not_playing"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        tools:visibility="gone"
         android:text="Nothing playing"
-        android:id="@+id/not_playing"
+        android:textSize="@dimen/now_playing_status_message_size"
+        android:textAlignment="center"
+        tools:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        />
+        app:layout_constraintTop_toTopOf="parent" />
 </androidx.constraintlayout.widget.ConstraintLayout>

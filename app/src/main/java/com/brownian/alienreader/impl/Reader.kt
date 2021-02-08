@@ -91,6 +91,7 @@ class Reader(private val minBufferSize: Byte = 3) {
         is Action.TtsProgressMessage -> {
             onTtsProgress(state, action)
         }
+        is Action.TtsInitializedMessage -> state.copy(playState = PlayState.NotPlaying)
         else -> {
             // TODO
             state
