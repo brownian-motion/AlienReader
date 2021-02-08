@@ -13,6 +13,6 @@ import androidx.annotation.NonNull;
  * this architecture requires each receiver be registered with a specific thread
  * on which to receive its messages.
  */
-public interface Receiver<T> {
-    void onReceive(@NonNull T message);
+interface Receiver<T> {
+    fun onReceive(message: T)
 }

@@ -9,7 +9,6 @@ import androidx.annotation.Nullable;
  * <p>
  * Returns a Throwable if the channel cannot be registered, or null on success.
  */
-public interface Sender<T> {
-    @Nullable
-    Throwable send(T message);
+interface Sender<T> {
+    fun send(message: T): Throwable?
 }
