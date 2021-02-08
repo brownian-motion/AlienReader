@@ -5,6 +5,7 @@ import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
 import com.brownian.alienreader.impl.Reader
+import com.brownian.alienreader.message.ListingId
 import com.brownian.alienreader.view.NowPlayingViewBinding
 import com.brownian.alienreader.view.NowPlayingViewModel
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -28,13 +29,15 @@ class MainActivity : AppCompatActivity() {
         val viewBinding = NowPlayingViewBinding(findViewById(R.id.now_playing))
 
         viewModel.state.observe(this, viewBinding::render)
-        // TODO: set first action onCreate()
+        viewModel.input.accept(Reader.Action.TtsInitializedMessage) // fake this from the TtsEngine so we can test before adding in TTS
 
         // TODO: subscribe to events coming from the view binding
 
         findViewById<FloatingActionButton>(R.id.fab).setOnClickListener { view ->
-            Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+            Snackbar.make(view, "Reading from r/TalesFromTechSupport", Snackbar.LENGTH_LONG)
                 .setAction("Action", null).show()
+
+            viewModel.input.accept(Reader.Action.StartPlayingFromSourceCommand(ListingId.Subreddit("talesfromtechsupport")))
         }
     }
 

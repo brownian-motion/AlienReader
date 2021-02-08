@@ -12,7 +12,8 @@ import com.brownian.alienreader.message.ReadableThing
 public class SentenceAdapter(
     val layoutInflater : LayoutInflater,
     var items : List<ReadableThing> = emptyList(),
-    var currentlyPlaying : Int = 0
+    var currentlyPlaying : Int = 0,
+    var paused : Boolean = true
 ) : RecyclerView.Adapter<SentenceAdapter.ViewHolder>() {
     data class ViewHolder(val view: View) : RecyclerView.ViewHolder(view) {
         val text : TextView = view.findViewById(R.id.sentence_text)
@@ -28,7 +29,7 @@ public class SentenceAdapter(
         )
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.text.text = (if(position == currentlyPlaying) "> " else "") + items[position].body
+        holder.text.text = (if(!paused && position == currentlyPlaying) "> " else "") + items[position].body
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             holder.text.tooltipText = items[position].body
         }

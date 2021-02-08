@@ -3,6 +3,7 @@ package com.brownian.alienreader.view
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.brownian.alienreader.R
 import com.brownian.alienreader.impl.Reader
@@ -12,7 +13,7 @@ open class NowPlayingViewBinding (protected val rootView: ViewGroup){
     protected val adapter = SentenceAdapter(LayoutInflater.from(rootView.context));
     protected val loading : View = rootView.findViewById(R.id.loading)
     protected val notStarted : View = rootView.findViewById(R.id.not_playing)
-    protected val title : View = rootView.findViewById(R.id.now_playing_title)
+    protected val title : TextView = rootView.findViewById(R.id.now_playing_title)
 
     init {
         recyclerView.adapter = adapter
@@ -41,8 +42,10 @@ open class NowPlayingViewBinding (protected val rootView: ViewGroup){
                 title.visible()
                 notStarted.gone()
 
+                title.text = "Playing " + state.playState.post.id
                 adapter.items = state.playState.sentences
                 adapter.currentlyPlaying = state.playState.currentlyReadingSentence
+                adapter.paused = state.playState.paused
                 adapter.notifyDataSetChanged()
             }
         }

@@ -9,6 +9,7 @@ import com.freeletics.rxredux.reduxStore
 import com.jakewharton.rxrelay2.PublishRelay
 import com.jakewharton.rxrelay2.Relay
 import io.reactivex.Observable
+import java.util.concurrent.TimeUnit
 
 class Reader(private val minBufferSize: Byte = 3) {
     data class State(
@@ -55,7 +56,10 @@ class Reader(private val minBufferSize: Byte = 3) {
         object TtsInitializedMessage : Action()
 
         sealed class TtsProgressMessage : Action() {
-            data class TtsStoppedMessage(override val utteranceId: String, val interrupted: Boolean) :
+            data class TtsStoppedMessage(
+                override val utteranceId: String,
+                val interrupted: Boolean
+            ) :
                 TtsProgressMessage()
 
             data class TtsStartedMessage(override val utteranceId: String) : TtsProgressMessage()
@@ -65,6 +69,17 @@ class Reader(private val minBufferSize: Byte = 3) {
 
             abstract val utteranceId: String
         }
+
+        data class StartPlayingFromSourceCommand(
+            val listingId: ListingId
+        ) : Action()
+
+        data class AddToPlayQueueMessage(val thing: ReadableThing) :
+            Action() // TODO: make this varargs?
+
+        object PlayNextInQueueCommand : Action()
+
+        object StartPlayingCommand : Action()
     }
 
     private data class ReadableCursor(
@@ -73,7 +88,7 @@ class Reader(private val minBufferSize: Byte = 3) {
         val next: Fullname?
     )
 
-    val input : Relay<Action> = PublishRelay.create()
+    val input: Relay<Action> = PublishRelay.create()
 
     // We're gonna assert that this object receives every event in the same thread,
     // so that we can assume that the state doesn't change DURING a function.
@@ -82,16 +97,80 @@ class Reader(private val minBufferSize: Byte = 3) {
             initialState = State(PlayState.Uninitialized, PlayQueue(emptyList(), null)),
             sideEffects = listOf<SideEffect<State, Action>>(
                 // TODO: maintain buffer
+                ::listenToStartPlayingFromSource,
+                ::playNextOnAddToEmptyPlayQueue,
+//                ::sendToTtsOnPlayNext
             ),
             reducer = ::reducer as Reducer<State, Action>
         )
         .distinctUntilChanged()
 
-    fun reducer(state: State, action:Action) = when (action) {
+
+    private fun sendToTtsOnPlayNext(
+        actions: Observable<Action>,
+        stateGetter: () -> State
+    ): Observable<out Action> = actions
+        .ofType(Action.PlayNextInQueueCommand::class.java)
+        .filter {
+            // this side effect will get run RIGHT after the play state is updated, so we can pull from there
+            stateGetter.invoke().playState is PlayState.NowPlaying
+        }
+        .map {
+            // this side effect will get run RIGHT after the play state is updated, so we can pull from there
+            TODO("Send message to TTS")
+        }
+
+    private fun playNextOnAddToEmptyPlayQueue(
+        actions: Observable<Action>,
+        stateGetter: () -> State
+    ): Observable<out Action> = actions
+        .ofType(Action.AddToPlayQueueMessage::class.java)
+        .filter { stateGetter.invoke().playState is PlayState.Loading }
+        .map { Action.PlayNextInQueueCommand }
+
+    private fun listenToStartPlayingFromSource(
+        actions: Observable<Action>,
+        stateGetter: () -> State
+    ): Observable<out Action> = actions
+        .ofType(Action.StartPlayingFromSourceCommand::class.java)
+        .flatMap {
+            Observable.fromArray(
+                Action.StartPlayingCommand,
+                Action.AddToPlayQueueMessage(
+                    ReadableThing(
+                        Fullname("FAKE_FULLNAME"),
+                        "Fake Listing"
+                    )
+                )
+            )
+        }
+        .delay(
+            1,
+            TimeUnit.SECONDS
+        ) // add some delay to make the loading indicator appear JUST DURING PROTOTYPING
+
+
+    fun reducer(state: State, action: Action): State = when (action) {
         is Action.TtsProgressMessage -> {
             onTtsProgress(state, action)
         }
-        is Action.TtsInitializedMessage -> state.copy(playState = PlayState.NotPlaying)
+        is Action.TtsInitializedMessage -> state.copy(playState = Reader.PlayState.NotPlaying)
+        is Action.AddToPlayQueueMessage -> state.copy(
+            playQueue = state.playQueue.copy(
+                queued = state.playQueue.queued.plus(
+                    action.thing
+                )
+            )
+        )
+        is Action.TtsProgressMessage.TtsDoneMessage -> playNextSentence(state)
+        is Action.PlayNextInQueueCommand -> playNextPost(state)
+        is Action.StartPlayingCommand -> {
+            when(state.playState) {
+                is PlayState.NotPlaying -> state.copy(playState = PlayState.Loading)
+                is PlayState.NowPlaying -> state.copy(playState = state.playState.copy(paused = false))
+                else -> state
+            }
+        }
         else -> {
             // TODO
             state
@@ -108,7 +187,7 @@ class Reader(private val minBufferSize: Byte = 3) {
 //                        TtsErrorCodeException(message.errorCode)
 //                    )
 //                )
-                if (state.playState is PlayState.NowPlaying) {
+                if (state.playState is Reader.PlayState.NowPlaying) {
                     state.copy(playState = state.playState.copy(paused = true))
                 } else {
                     state
@@ -117,7 +196,7 @@ class Reader(private val minBufferSize: Byte = 3) {
             is Action.TtsProgressMessage.TtsStartedMessage -> {
                 val utteranceId = message.utteranceId
 
-                if (state.playState !is PlayState.NowPlaying) {
+                if (state.playState !is Reader.PlayState.NowPlaying) {
                     error("Expected to only receive \"TtsStartedMessage\" while in the Reading state")
                 }
 
@@ -142,7 +221,7 @@ class Reader(private val minBufferSize: Byte = 3) {
 //            )
         }
 
-        return if (playState is PlayState.NowPlaying && playState.currentlyReadingSentence < playState.sentences.size - 1) {
+        return if (playState is Reader.PlayState.NowPlaying && playState.currentlyReadingSentence < playState.sentences.size - 1) {
             // if we we still have sentences, then we don't need to advance to the next post, just the next sentence
             val nextPlayState =
                 playState.copy(currentlyReadingSentence = playState.currentlyReadingSentence + 1)
@@ -159,15 +238,15 @@ class Reader(private val minBufferSize: Byte = 3) {
             queue.queued.isEmpty() -> {
                 if (queue.next == null)
                 // because we're done with the queue
-                    currentState.copy(playState = PlayState.NotPlaying)
+                    currentState.copy(playState = Reader.PlayState.NotPlaying)
                 else
                 // because we've asked for more, but we don't have it yet
-                    currentState.copy(playState = PlayState.Loading)
+                    currentState.copy(playState = Reader.PlayState.Loading)
 
             }
             else -> {
                 val (postToRead, rest) = queue.queued.removeFirst()
-                val nowPlaying = PlayState.NowPlaying(
+                val nowPlaying = Reader.PlayState.NowPlaying(
                     getSentences(postToRead),
                     postToRead,
                     0,
@@ -182,7 +261,6 @@ class Reader(private val minBufferSize: Byte = 3) {
     private fun <T> List<T>.removeFirst(): Pair<T, List<T>> =
         Pair(this[0], this.subList(1, this.size))
 
-    private fun getSentences(next: ReadableThing): List<ReadableThing> {
-        TODO("Not yet implemented")
-    }
+    private fun getSentences(next: ReadableThing): List<ReadableThing> =
+        next.body.split(Regex("\\.\\s+")).map { ReadableThing(next.id, it) } .toList()
 }

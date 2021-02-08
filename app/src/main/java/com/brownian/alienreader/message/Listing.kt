@@ -21,7 +21,7 @@ data class ReadableThing(val id: Fullname, val body: CharSequence)
  * with [Fullname]s identifying what comes "before" and "after" that slice.
  */
 sealed class ListingId {
-    data class Subreddit(val subreddit: String)
+    data class Subreddit(val subreddit: String) : ListingId()
     // TODO: define different kinds of listings that can be traversed through
 }
 

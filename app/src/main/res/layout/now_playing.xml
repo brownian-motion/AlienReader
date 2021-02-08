@@ -26,11 +26,9 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/now_playing_title"
         android:layout_height="0dp"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         tools:listitem="@layout/sentence_list_item"
-        tools:itemCount="5"
-        >
-
-    </androidx.recyclerview.widget.RecyclerView>
+        tools:itemCount="5" />
 
     <TextView
         android:id="@+id/loading"
