@@ -1,54 +1,64 @@
 package com.brownian.alienreader.view
 
-import android.view.LayoutInflater
+import android.text.SpannableStringBuilder
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import androidx.recyclerview.widget.RecyclerView
 import com.brownian.alienreader.R
 import com.brownian.alienreader.impl.Reader
 
-open class NowPlayingViewBinding (protected val rootView: ViewGroup){
-    protected val recyclerView : RecyclerView = rootView.findViewById(R.id.sentence_list)
-    protected val adapter = SentenceAdapter(LayoutInflater.from(rootView.context));
-    protected val loading : View = rootView.findViewById(R.id.loading)
-    protected val notStarted : View = rootView.findViewById(R.id.not_playing)
-    protected val title : TextView = rootView.findViewById(R.id.now_playing_title)
-
-    init {
-        recyclerView.adapter = adapter
-    }
+open class NowPlayingViewBinding(private val rootView: ViewGroup) {
+    protected val body: TextView = rootView.findViewById(R.id.now_playing_body)
+    protected val loading: View = rootView.findViewById(R.id.loading)
+    protected val notStarted: View = rootView.findViewById(R.id.not_playing)
+    protected val title: TextView = rootView.findViewById(R.id.now_playing_title)
 
     // TODO: respond to the user clicking on a sentence
 
-    open fun render(state : Reader.State) =
-        when(state.playState){
+    open fun render(state: Reader.State) =
+        when (state.playState) {
             Reader.PlayState.Uninitialized,
             Reader.PlayState.Loading -> {
                 loading.visible()
-                recyclerView.gone()
+                body.gone()
                 title.gone()
                 notStarted.gone()
             }
             Reader.PlayState.NotPlaying -> {
                 loading.gone()
-                recyclerView.gone()
+                body.gone()
                 title.gone()
                 notStarted.visible()
             }
             is Reader.PlayState.NowPlaying -> {
                 loading.gone()
-                recyclerView.visible()
+                body.visible()
                 title.visible()
                 notStarted.gone()
 
                 title.text = "Playing " + state.playState.post.id
-                adapter.items = state.playState.sentences
-                adapter.currentlyPlaying = state.playState.currentlyReadingSentence
-                adapter.paused = state.playState.paused
-                adapter.notifyDataSetChanged()
+                body.text = formatBody(state.playState)
             }
         }
+
+    private fun formatBody(playState: Reader.PlayState.NowPlaying): CharSequence {
+        var front = playState.sentences.subList(0, playState.currentlyReadingSentence)
+        var reading = playState.currentSentence()
+        var back = playState.sentences.subList(
+            playState.currentlyReadingSentence + 1,
+            playState.sentences.size
+        )
+
+        var text = SpannableStringBuilder()
+
+        text.appendLine(front.map { it.body }.joinToString(separator = "  "))
+
+        text.appendLine(reading.body) // TODO make this bold
+
+        text.append(back.map { it.body }.joinToString("  "))
+
+        return text
+    }
 
     private fun View.gone() {
         visibility = View.GONE

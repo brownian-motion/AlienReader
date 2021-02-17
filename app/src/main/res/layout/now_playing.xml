@@ -18,17 +18,15 @@
         app:layout_constraintTop_toTopOf="parent" />
 
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/sentence_list"
+    <TextView
+        android:id="@+id/now_playing_body"
         android:layout_width="match_parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/now_playing_title"
         android:layout_height="0dp"
-        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-        tools:listitem="@layout/sentence_list_item"
-        tools:itemCount="5" />
+        tools:text="@tools:sample/lorem/random"/>
 
     <TextView
         android:id="@+id/loading"
