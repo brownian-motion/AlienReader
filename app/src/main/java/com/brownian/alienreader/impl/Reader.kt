@@ -11,7 +11,7 @@ import com.jakewharton.rxrelay2.Relay
 import io.reactivex.Observable
 import java.util.concurrent.TimeUnit
 
-class Reader(private val minBufferSize: Byte = 3) {
+class Reader(private val tts: Tts, private val minBufferSize: Byte = 3) {
     data class State(
         val playState: PlayState,
         val playQueue: PlayQueue
@@ -53,22 +53,7 @@ class Reader(private val minBufferSize: Byte = 3) {
          */
         object TtsShutdownCommand : Action()
 
-        object TtsInitializedMessage : Action()
-
-        sealed class TtsProgressMessage : Action() {
-            data class TtsStoppedMessage(
-                override val utteranceId: String,
-                val interrupted: Boolean
-            ) :
-                TtsProgressMessage()
-
-            data class TtsStartedMessage(override val utteranceId: String) : TtsProgressMessage()
-            data class TtsDoneMessage(override val utteranceId: String) : TtsProgressMessage()
-            data class TtsErrorMessage(override val utteranceId: String, val errorCode: Int) :
-                TtsProgressMessage()
-
-            abstract val utteranceId: String
-        }
+        data class TtsStatusMessage(val message: Tts.StatusMessage) : Action()
 
         data class StartPlayingFromSourceCommand(
             val listingId: ListingId

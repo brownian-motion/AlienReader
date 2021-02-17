@@ -5,6 +5,7 @@ import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
 import com.brownian.alienreader.impl.Reader
+import com.brownian.alienreader.impl.Tts
 import com.brownian.alienreader.message.ListingId
 import com.brownian.alienreader.view.NowPlayingViewBinding
 import com.brownian.alienreader.view.NowPlayingViewModel
@@ -29,7 +30,7 @@ class MainActivity : AppCompatActivity() {
         val viewBinding = NowPlayingViewBinding(findViewById(R.id.now_playing))
 
         viewModel.state.observe(this, viewBinding::render)
-        viewModel.input.accept(Reader.Action.TtsInitializedMessage) // fake this from the TtsEngine so we can test before adding in TTS
+        viewModel.input.accept(Reader.Action.TtsStatusMessage(Tts.StatusMessage.InitializedMessage(0))) // fake this from the TtsEngine so we can test before adding in TTS
 
         // TODO: subscribe to events coming from the view binding
 
